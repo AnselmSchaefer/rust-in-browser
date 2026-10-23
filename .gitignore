@@ -7,3 +7,5 @@
 # The toolchain the IDE downloads (tools/build_assets.py makes it)
 /web/toolchain/
 __pycache__/
+# Personal Claude Code settings
+/.claude/settings.local.json
