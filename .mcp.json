@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "rust-browser-ide": {
+      "command": ".venv/bin/python",
+      "args": ["bridge/ide_bridge.py"]
+    }
+  }
+}

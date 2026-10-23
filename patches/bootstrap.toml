@@ -1,0 +1,62 @@
+# rustc 1.98.0 for wasm32-wasip1-threads, to run in the browser.
+#
+# The stage0 compiler is the official 1.98.0 (rustup toolchain `1.98.0`, pinned: not `stable`), so `local-rebuild` lets it build the compiler
+# for the wasm host directly. With the stable channel and the source tarball's git-commit-info, the
+# result reports `1.98.0 (88d9e12ae 2026-08-18)` like the official compiler, so it reads the official
+# std and crates that the official compiler built.
+change-id = "ignore"
+
+[build]
+build = "x86_64-unknown-linux-gnu"
+host = ["wasm32-wasip1-threads"]
+target = ["wasm32-wasip1-threads"]
+rustc = "@HOME@/.rustup/toolchains/1.98.0-x86_64-unknown-linux-gnu/bin/rustc"
+cargo = "@HOME@/.rustup/toolchains/1.98.0-x86_64-unknown-linux-gnu/bin/cargo"
+local-rebuild = true
+vendor = true
+docs = false
+extended = false
+tools = []
+profiler = false
+sanitizers = false
+compiler-docs = false
+locked-deps = true
+# Exactly the official version string ("1.98.0 (88d9e12ae 2026-08-18)"): no "(built from a source tarball)".
+description = ""
+
+[llvm]
+download-ci-llvm = false
+
+[rust]
+channel = "stable"
+codegen-backends = ["llvm"]
+deny-warnings = false
+debug = false
+debug-assertions = false
+debuginfo-level = 0
+lld = false
+llvm-bitcode-linker = false
+llvm-tools = false
+jemalloc = false
+optimize = 3
+codegen-units = 16
+# Bootstrap compresses debug sections for builds from a tarball; there are none here, and the flag
+# reaches clang unprefixed.
+compress-debuginfo = "off"
+
+[target.wasm32-wasip1-threads]
+llvm-config = "@ROOT@/build/llvm/wasm-prefix/bin/llvm-config"
+wasi-root = "@ROOT@/build/wasi-sdk-34.0-x86_64-linux/share/wasi-sysroot"
+cc = "@ROOT@/build/wasi-sdk-34.0-x86_64-linux/bin/clang"
+cxx = "@ROOT@/build/wasi-sdk-34.0-x86_64-linux/bin/clang++"
+ar = "@ROOT@/build/wasi-sdk-34.0-x86_64-linux/bin/ar"
+ranlib = "@ROOT@/build/wasi-sdk-34.0-x86_64-linux/bin/ranlib"
+linker = "@ROOT@/build/wasi-sdk-34.0-x86_64-linux/bin/clang"
+codegen-backends = ["llvm"]
+# Link rustc.wasm with wasi-sdk's libc (not the self-contained one), up to 4 GiB of memory, and an
+# 8 MiB stack for the main thread.
+rustflags = [
+  "-Clink-self-contained=no",
+  "-Clink-arg=-Wl,--max-memory=4294967296",
+  "-Clink-arg=-Wl,-z,stack-size=8388608",
+]

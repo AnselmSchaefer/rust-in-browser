@@ -1,0 +1,9 @@
+# Build trees and downloads (scripts/ recreate them)
+/build/
+/.venv/
+/tools/*/target/
+/tools/test/node_modules/
+/caprice-web/target/
+# The toolchain the IDE downloads (tools/build_assets.py makes it)
+/web/toolchain/
+__pycache__/

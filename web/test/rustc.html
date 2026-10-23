@@ -1,0 +1,19 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>rustc test</title></head>
+<body><pre id="out"></pre>
+<script type="module">
+// ?src=<rust source for /t/main.rs>&args=<space-separated rustc args> (with the IDE's packs mounted).
+import { Toolchain } from "../runtime/toolchain.js";
+const say = (t) => (document.getElementById("out").textContent += t);
+const q = new URLSearchParams(location.search);
+const tc = new Toolchain();
+const manifest = await fetch("../toolchain/manifest.json").then((r) => r.json());
+await Promise.all([
+  ...Object.entries(manifest.programs).map(([n, p]) => tc.load(n, "../" + p.url, p)),
+  ...manifest.packs.map((p) => tc.mountPack("../" + p.url, p.at)),
+]);
+if (q.has("src")) await tc.writeFile("/t/main.rs", q.get("src"));
+const r = await tc.run("rustc", { args: q.get("args").split(" ").filter(Boolean), env: { RUST_BACKTRACE: "1" }, onOutput: (fd, t) => say(t) });
+say(`\n== code ${r.code} crash ${r.crash ?? "-"} in ${r.ms} ms\n`);
+window.result = r;
+</script></body></html>

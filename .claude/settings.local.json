@@ -1,0 +1,5 @@
+{
+  "enabledMcpjsonServers": [
+    "rust-browser-ide"
+  ]
+}

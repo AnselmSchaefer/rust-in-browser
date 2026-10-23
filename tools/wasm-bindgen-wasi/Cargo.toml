@@ -1,0 +1,16 @@
+# wasm-bindgen's JS glue generator as a plain WASI program, so the browser IDE can run it after rustc.
+# The version must be the wasm-bindgen that the compiled app uses (Caprice's Cargo.lock).
+[package]
+name = "wasm-bindgen-wasi"
+version = "0.2.129"
+edition = "2024"
+publish = false
+
+[dependencies]
+wasm-bindgen-cli-support = "=0.2.129"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = true

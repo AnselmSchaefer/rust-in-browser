@@ -1,0 +1,16 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Runtime smoke test</title></head>
+<body><pre id="out"></pre>
+<script type="module">
+import { Toolchain } from "../runtime/toolchain.js";
+const out = document.getElementById("out");
+const say = (t) => (out.textContent += t);
+const tc = new Toolchain();
+await tc.load("wasi-smoke", "./wasi-smoke.wasm", { memoryMin: 17, memoryMax: 65536 });
+const panic = new URLSearchParams(location.search).has("panic");
+const r = await tc.run("wasi-smoke", { args: panic ? ["panic"] : ["a", "b c"], env: { HELLO: "world" }, onOutput: (fd, t) => say(t) });
+say(`\n== code ${r.code} crash ${r.crash ?? "-"} in ${r.ms} ms\n`);
+const listing = await tc.request("walk", { path: "/tmp" });
+say(JSON.stringify(listing) + "\n");
+window.result = { ...r, listing };
+</script></body></html>

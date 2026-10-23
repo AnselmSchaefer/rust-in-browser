@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Caprice preview</title>
+  <link rel="icon" href="data:,">
+  <style>
+    html, body { margin: 0; height: 100%; background: #1d1f25; overflow: hidden; }
+    canvas { display: block; width: 100%; height: 100%; outline: none; }
+    #failed { position: absolute; inset: 0; display: none; padding: 24px; color: #ffa8a8; font: 12px/1.5 ui-monospace, monospace; white-space: pre-wrap; background: #1d1f25; overflow: auto; }
+  </style>
+</head>
+<body>
+<canvas id="caprice_canvas" tabindex="0"></canvas>
+<pre id="failed"></pre>
+<script type="module">
+// The app's frame. The IDE posts {type: "start", js, wasm}: the JS glue and the wasm module that
+// wasm-bindgen made; this page loads them and calls the module's `caprice_start` export. It reports the
+// app's console back, and answers the IDE's requests for screenshots and for input (from MCP tools).
+
+const ide = window.parent;
+const post = (msg) => ide.postMessage({ source: "preview", ...msg }, location.origin);
+
+// Screenshots read the canvas back, so WebGL must keep its drawing buffer.
+const getContext = HTMLCanvasElement.prototype.getContext;
+HTMLCanvasElement.prototype.getContext = function (kind, options) {
+  if (kind === "webgl" || kind === "webgl2") options = { ...options, preserveDrawingBuffer: true };
+  return getContext.call(this, kind, options);
+};
+
+const show = (v) => {
+  if (typeof v === "string") return v;
+  if (v instanceof Error) return `${v.message}\n${v.stack ?? ""}`;
+  try { return JSON.stringify(v); } catch { return String(v); }
+};
+for (const level of ["log", "info", "warn", "error", "debug"]) {
+  const original = console[level].bind(console);
+  console[level] = (...args) => {
+    original(...args);
+    post({ type: "console", level, text: args.map(show).join(" ") });
+  };
+}
+const fail = (text) => {
+  post({ type: "console", level: "error", text });
+  post({ type: "crashed", text });
+};
+addEventListener("error", (e) => fail(`${e.message}${e.error?.stack ? `\n${e.error.stack}` : ""}`));
+addEventListener("unhandledrejection", (e) => fail(`unhandled rejection: ${show(e.reason)}`));
+
+const canvas = document.getElementById("caprice_canvas");
+
+function pointer(type, x, y, button = 0, buttons = 0) {
+  const r = canvas.getBoundingClientRect();
+  const init = {
+    bubbles: true, cancelable: true, composed: true, clientX: r.left + x, clientY: r.top + y,
+    button, buttons, pointerId: 1, pointerType: "mouse", isPrimary: true, view: window,
+  };
+  canvas.dispatchEvent(new PointerEvent(`pointer${type}`, init));
+  canvas.dispatchEvent(new MouseEvent(`mouse${type}`, init));
+}
+
+function key(type, k, mods = {}) {
+  const init = {
+    key: k, code: k.length === 1 ? `Key${k.toUpperCase()}` : k, bubbles: true, cancelable: true, composed: true,
+    ctrlKey: !!mods.ctrl, shiftKey: !!mods.shift, altKey: !!mods.alt, metaKey: !!mods.meta,
+  };
+  const target = document.activeElement && document.activeElement !== document.body ? document.activeElement : canvas;
+  target.dispatchEvent(new KeyboardEvent(type, init));
+}
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const nextFrame = () => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+
+const requests = {
+  async screenshot() {
+    await nextFrame();
+    return { png: canvas.toDataURL("image/png").split(",")[1], width: canvas.width, height: canvas.height };
+  },
+  async click({ x, y, button = 0, double = false }) {
+    canvas.focus();
+    for (let i = 0; i < (double ? 2 : 1); i++) {
+      pointer("move", x, y, button, 0);
+      pointer("down", x, y, button, 1 << button);
+      await sleep(30);
+      pointer("up", x, y, button, 0);
+      await sleep(30);
+    }
+    if (double) canvas.dispatchEvent(new MouseEvent("dblclick", { bubbles: true, clientX: x, clientY: y }));
+    await nextFrame();
+    return { ok: true };
+  },
+  async drag({ x, y, toX, toY, steps = 12 }) {
+    pointer("move", x, y);
+    pointer("down", x, y, 0, 1);
+    for (let i = 1; i <= steps; i++) {
+      pointer("move", x + ((toX - x) * i) / steps, y + ((toY - y) * i) / steps, 0, 1);
+      await sleep(16);
+    }
+    pointer("up", toX, toY);
+    await nextFrame();
+    return { ok: true };
+  },
+  async scroll({ x, y, dy = 0, dx = 0 }) {
+    const r = canvas.getBoundingClientRect();
+    canvas.dispatchEvent(new WheelEvent("wheel", { bubbles: true, cancelable: true, clientX: r.left + x, clientY: r.top + y, deltaX: dx, deltaY: dy, deltaMode: 0 }));
+    await nextFrame();
+    return { ok: true };
+  },
+  async key({ key: k, ctrl, shift, alt, meta }) {
+    const mods = { ctrl, shift, alt, meta };
+    key("keydown", k, mods);
+    await sleep(20);
+    key("keyup", k, mods);
+    await nextFrame();
+    return { ok: true };
+  },
+  async type({ text }) {
+    // egui reads typed text from its hidden text input when it has one, and from key events otherwise.
+    for (const ch of text) {
+      const k = ch === "\n" ? "Enter" : ch;
+      key("keydown", k);
+      const input = document.activeElement;
+      if (ch !== "\n" && input && input.tagName === "INPUT") {
+        input.value += ch;
+        input.dispatchEvent(new InputEvent("input", { data: ch, inputType: "insertText", bubbles: true }));
+      }
+      key("keyup", k);
+      await sleep(8);
+    }
+    await nextFrame();
+    return { ok: true };
+  },
+  size: () => ({ width: canvas.clientWidth, height: canvas.clientHeight, dpr: devicePixelRatio }),
+};
+
+addEventListener("message", async (e) => {
+  if (e.origin !== location.origin || e.source !== ide) return;
+  const msg = e.data;
+  if (msg.type === "start") {
+    try {
+      const url = URL.createObjectURL(new Blob([msg.js], { type: "text/javascript" }));
+      const glue = await import(url);
+      const wasm = await glue.default({ module_or_path: msg.wasm });
+      wasm.caprice_start();
+      canvas.focus();
+      post({ type: "started" });
+    } catch (err) {
+      document.getElementById("failed").style.display = "block";
+      document.getElementById("failed").textContent = show(err);
+      fail(`the app didn't start: ${show(err)}`);
+    }
+  } else if (msg.type === "request") {
+    try {
+      post({ type: "reply", id: msg.id, result: await requests[msg.method](msg.params ?? {}) });
+    } catch (err) {
+      post({ type: "reply", id: msg.id, error: show(err) });
+    }
+  }
+});
+
+post({ type: "ready" });
+</script>
+</body>
+</html>

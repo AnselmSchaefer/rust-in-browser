@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Rust Browser IDE</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%23c2410c'/><path d='M9 22V10h7a4 4 0 0 1 0 8h-7m7 0 5 4' stroke='white' stroke-width='3' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>">
+  <link rel="stylesheet" href="ide.css">
+  <link rel="stylesheet" data-name="vs/editor/editor.main" href="vendor/monaco/vs/editor/editor.main.css">
+</head>
+<body>
+  <header class="toolbar">
+    <div class="brand"><span class="logo">R</span>Rust Browser IDE <span class="project-name">caprice</span></div>
+    <button id="run" class="run" disabled title="Compile with rustc in this tab and start the app (Ctrl+Enter)">
+      <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.5v11l9-5.5z"/></svg><span>Build &amp; Run</span>
+    </button>
+    <div id="status" class="status">Starting…</div>
+    <div class="spacer"></div>
+    <button id="reset" class="ghost" title="Discard your edits and go back to Caprice as shipped">Reset project</button>
+    <div id="bridge" class="bridge" title="Connection to the MCP bridge (python bridge/ide_bridge.py)">
+      <span class="dot"></span><span class="label">bridge</span>
+    </div>
+  </header>
+
+  <main id="main">
+    <section id="code" class="pane">
+      <nav id="tree" class="tree" aria-label="Project files"></nav>
+      <div class="editor-column">
+        <div id="tabs" class="tabs" role="tablist"></div>
+        <div id="editor" class="editor"></div>
+        <div id="panel-resizer" class="hresizer" title="Drag to resize"></div>
+        <div id="panel" class="panel">
+          <div class="panel-tabs" role="tablist">
+            <button data-panel="output" class="active">Output</button>
+            <button data-panel="problems">Problems <span id="problem-count" class="count"></span></button>
+            <button data-panel="console">App console <span id="console-count" class="count"></span></button>
+          </div>
+          <pre id="output" class="panel-body active" data-panel="output"></pre>
+          <div id="problems" class="panel-body" data-panel="problems"></div>
+          <pre id="console" class="panel-body" data-panel="console"></pre>
+        </div>
+      </div>
+    </section>
+    <div id="split" class="vresizer" title="Drag to resize"></div>
+    <section id="app" class="pane app-pane">
+      <div class="app-bar">
+        <span class="app-title">Caprice</span>
+        <span id="app-state" class="app-state">not built yet</span>
+        <div class="spacer"></div>
+        <button id="restart" class="ghost small" disabled title="Start the last build again">Restart</button>
+      </div>
+      <div class="app-frame">
+        <iframe id="preview" title="Caprice, running in this tab" src="about:blank"></iframe>
+        <div id="app-overlay" class="app-overlay">
+          <div class="overlay-card">
+            <div id="overlay-title">Loading the toolchain</div>
+            <div class="progress"><div id="progress-bar"></div></div>
+            <div id="overlay-detail" class="detail"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="vendor/monaco/vs/loader.js"></script>
+  <script type="module" src="ide.js"></script>
+</body>
+</html>

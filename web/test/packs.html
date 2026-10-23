@@ -1,0 +1,17 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Pack mount test</title></head>
+<body><pre id="out"></pre>
+<script type="module">
+import { Toolchain } from "../runtime/toolchain.js";
+const say = (t) => (document.getElementById("out").textContent += t + "\n");
+const tc = new Toolchain();
+const manifest = await fetch("../toolchain/manifest.json").then((r) => r.json());
+const t0 = performance.now();
+const counts = await Promise.all(manifest.packs.map((p) => tc.mountPack("../" + p.url, p.at)));
+say(`mounted ${counts.join(" + ")} files in ${Math.round(performance.now() - t0)} ms`);
+const deps = await tc.request("list", { path: "/deps/host" });
+say(JSON.stringify(deps.map((d) => d.name)));
+const main = await tc.readFile("/project/src/main.rs", true);
+say(`main.rs: ${main.split("\n").length} lines`);
+window.result = true;
+</script></body></html>

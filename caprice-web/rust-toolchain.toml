@@ -1,0 +1,5 @@
+# The browser's rustc is 1.98.0, and it can only use crates built by the same compiler: the
+# dependencies are prebuilt with this toolchain.
+[toolchain]
+channel = "1.98.0"
+targets = ["wasm32-unknown-unknown"]

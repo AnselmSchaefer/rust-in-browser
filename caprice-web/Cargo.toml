@@ -1,0 +1,38 @@
+[package]
+name = "caprice"
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+
+[dependencies]
+base64 = "0.23.1"
+eframe = "0.36.2"
+fontdb = "0.24.0"
+image = { version = "0.25.10", default-features = false, features = ["png", "jpeg"] }
+krilla = "0.8"
+resvg = "0.48.1"
+rfd = "0.17.2"
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.151"
+ttf-parser = "0.25"
+zip = { version = "8.6.0", default-features = false, features = ["deflate"] }
+
+# In a browser (`src/web.rs`): the app starts from a future.
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-bindgen-futures = "0.4.79"
+
+[dev-dependencies]
+roxmltree = "0.21.1"
+
+# Used by cargo-mutants (see .cargo/mutants.toml): no debug info keeps each build small and quick.
+[profile.mutants]
+inherits = "test"
+debug = "none"
+
+# The browser IDE compiles only Caprice itself; its dependencies come prebuilt, optimized and
+# without debug info, which keeps them small to download and the app quick.
+[profile.dev]
+debug = false
+
+[profile.dev.package."*"]
+opt-level = 2
