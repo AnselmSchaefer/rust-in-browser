@@ -47,6 +47,30 @@ Tools: `ide_status`, `list_files`, `read_file`, `write_file`, `edit_file`, `dele
 `app_drag`, `app_scroll`, `app_key`, `app_type`, `restart_app`, `reset_project`, `sync_to_disk`,
 `load_from_disk`.
 
+## Performance
+
+Measured 2026-10-23 on an i5-11400H laptop (6 cores / 12 threads, 16 GB RAM), Chromium 155, fresh profile.
+
+| | AC power | Battery |
+|---|--:|--:|
+| Toolchain load (local bridge) | 1.9 s | 3.0 s |
+| Cold build: rustc + wasm-bindgen | **15.7 s** (12.6 + 3.1) | 23–25 s (18–21 + 4.4) |
+| Rebuild after an edit: rustc + wasm-bindgen | **4.5–4.8 s** (~2.0 + 2.6) | 7.3–8.2 s (~3.4 + 4.1) |
+| Build that fails with a type error | – | 1.4 s |
+| First build after a page reload | – | 20.9 s (full, not incremental) |
+
+- **Memory** (PSS of the whole Chromium process tree): ~1.4 GiB idle with the app running, **~3.0–3.2 GiB at
+  the peak of a build**, and up to 3.5 GiB when builds run back-to-back, because a build's memory is freed only
+  at the next GC. About 92 % of it is the one renderer process. The JS + wasm heap stays at ~740 MiB after each
+  incremental build (no leak across 8 builds).
+- **CPU:** rustc averages ~2 cores. It peaks near 8 cores only during a cold build's codegen; incremental builds
+  use ~1.8 cores. The IDE costs ~0.5 cores at rest with the app running.
+- **Findings:** wasm-bindgen now takes longer than rustc in an incremental build (it reprocesses the 27 MB debug
+  wasm every time). What you edit barely matters: a leaf literal and a const used across the crate rebuild in
+  the same time. A no-op rebuild still costs a full incremental build. A reload drops the in-memory incremental
+  cache. One full build out of 16 failed without errors; it did not happen again in 12 further cold starts. Battery power makes
+  everything ~1.5× slower.
+
 ## How it works
 
 **rustc for WebAssembly.** rubrc's prebuilt rustc is 1.83; Caprice's eframe 0.36 needs Rust 1.95. So
