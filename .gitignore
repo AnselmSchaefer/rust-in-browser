@@ -9,3 +9,4 @@
 __pycache__/
 # Personal Claude Code settings
 /.claude/settings.local.json
+*.log

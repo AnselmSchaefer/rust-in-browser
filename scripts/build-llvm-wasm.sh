@@ -9,12 +9,13 @@
 set -euo pipefail
 
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
+. "$ROOT/scripts/host.sh"
 RUST_SRC=${RUST_SRC:-$ROOT/build/src/rustc-1.98.0-src}
 LLVM_SRC=$RUST_SRC/src/llvm-project
-WASI_SDK=${WASI_SDK:-$ROOT/build/wasi-sdk-34.0-x86_64-linux}
+WASI_SDK=${WASI_SDK:-$ROOT/build/$WASI_SDK_NAME}
 OUT=$ROOT/build/llvm
 TARGET=wasm32-wasip1-threads
-JOBS=${JOBS:-$(nproc)}
+JOBS=${JOBS:-$(cpu_count)}
 export PATH=$ROOT/.venv/bin:$PATH
 
 # Options both builds share, so that the native llvm-config describes the cross build's libraries.

@@ -7,11 +7,11 @@
 change-id = "ignore"
 
 [build]
-build = "x86_64-unknown-linux-gnu"
+build = "@BUILD@"
 host = ["wasm32-wasip1-threads"]
 target = ["wasm32-wasip1-threads"]
-rustc = "@HOME@/.rustup/toolchains/1.98.0-x86_64-unknown-linux-gnu/bin/rustc"
-cargo = "@HOME@/.rustup/toolchains/1.98.0-x86_64-unknown-linux-gnu/bin/cargo"
+rustc = "@HOME@/.rustup/toolchains/1.98.0-@BUILD@/bin/rustc"
+cargo = "@HOME@/.rustup/toolchains/1.98.0-@BUILD@/bin/cargo"
 local-rebuild = true
 vendor = true
 docs = false
@@ -46,12 +46,12 @@ compress-debuginfo = "off"
 
 [target.wasm32-wasip1-threads]
 llvm-config = "@ROOT@/build/llvm/wasm-prefix/bin/llvm-config"
-wasi-root = "@ROOT@/build/wasi-sdk-34.0-x86_64-linux/share/wasi-sysroot"
-cc = "@ROOT@/build/wasi-sdk-34.0-x86_64-linux/bin/clang"
-cxx = "@ROOT@/build/wasi-sdk-34.0-x86_64-linux/bin/clang++"
-ar = "@ROOT@/build/wasi-sdk-34.0-x86_64-linux/bin/ar"
-ranlib = "@ROOT@/build/wasi-sdk-34.0-x86_64-linux/bin/ranlib"
-linker = "@ROOT@/build/wasi-sdk-34.0-x86_64-linux/bin/clang"
+wasi-root = "@ROOT@/build/@WASI_SDK@/share/wasi-sysroot"
+cc = "@ROOT@/build/@WASI_SDK@/bin/clang"
+cxx = "@ROOT@/build/@WASI_SDK@/bin/clang++"
+ar = "@ROOT@/build/@WASI_SDK@/bin/ar"
+ranlib = "@ROOT@/build/@WASI_SDK@/bin/ranlib"
+linker = "@ROOT@/build/@WASI_SDK@/bin/clang"
 codegen-backends = ["llvm"]
 # Link rustc.wasm with wasi-sdk's libc (not the self-contained one), up to 4 GiB of memory, and an
 # 8 MiB stack for the main thread.
